@@ -24,7 +24,7 @@ class MeuViewModel(application: Application) :AndroidViewModel(application) {
         context = application,
         klass = BDloja_solidaria::class.java,
         name = "BDloja_solidaria"
-    ).build()
+    ).fallbackToDestructiveMigration(dropAllTables = true).build()
 
     var categoriaLida by mutableStateOf("")
     var quantidadeLida by mutableStateOf(value = "")
