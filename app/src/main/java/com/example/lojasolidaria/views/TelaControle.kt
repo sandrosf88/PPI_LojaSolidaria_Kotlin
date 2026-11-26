@@ -56,6 +56,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.DialogProperties
 import java.time.Instant
 import java.time.ZoneOffset
@@ -326,8 +327,6 @@ fun TelaControle(
                         ))
                     },
                     text = {
-
-
                         Column() {
                             Text(
                                 text = "Quantidade:",
@@ -340,8 +339,6 @@ fun TelaControle(
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 placeholder = { Text("Digite apenas números.") }
                             )
-
-
                             if (viewModel.mensagemErro.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
@@ -517,7 +514,6 @@ fun TelaControle(
                                     }
                                 }
                             }
-
                             if (viewModel.listaRegistros.isEmpty()) {
                                 Text("Nenhum registro nesta data.")
                             } else {
@@ -526,13 +522,12 @@ fun TelaControle(
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 6.dp),
+                                                .padding(vertical = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("ID", modifier = Modifier.width(35.dp), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                            Text("Data", modifier = Modifier.width(90.dp), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                            Text("Categoria", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                            Text("Qtd.", modifier = Modifier.width(96.dp), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                            Text("ID", modifier = Modifier.width(45.dp), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                            Text("Categoria", modifier = Modifier.weight(1f).padding(horizontal = 8.dp), fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
+                                            Text("Quantidade.", modifier = Modifier.width(96.dp), fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
                                         }
                                     }
                                     items(viewModel.listaRegistros, key = { it.id }) { registro ->
@@ -544,16 +539,14 @@ fun TelaControle(
                                                 .padding(vertical = 6.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("${registro.id}", modifier = Modifier.width(35.dp), fontSize = 14.sp)
+                                            Text("${registro.id}", modifier = Modifier.width(45.dp), fontSize = 14.sp)
                                             Text(
-                                                text = LocalDate.parse(registro.dataEvento).format(formatoData),
-                                                modifier = Modifier.width(90.dp),
-                                                fontSize = 14.sp
-                                            )
-                                            Text(
-                                                text = if (entrada) registro.categoria else "Saída",
-                                                modifier = Modifier.weight(1f),
-                                                fontSize = 14.sp
+                                                text = if (entrada) registro.categoria else "Sem categoria",
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .padding(horizontal = 8.dp),
+                                                fontSize = 14.sp,
+                                                textAlign = TextAlign.Center
                                             )
                                             if (modoEdicao) {
                                                 OutlinedTextField(
@@ -583,7 +576,8 @@ fun TelaControle(
                                                     modifier = Modifier.width(96.dp),
                                                     color = corQuantidade,
                                                     fontWeight = FontWeight.Bold,
-                                                    fontSize = 14.sp
+                                                    fontSize = 14.sp,
+                                                    textAlign = TextAlign.Center
                                                 )
                                             }
                                         }
@@ -737,8 +731,6 @@ fun TelaControle(
         ) {
             Button(
                 onClick = {navController . navigate ("TelaInicial")
-                    //mensagem = ""
-                    // loginOk=false
                 }, colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFBDA685),
                     contentColor = Color.Black
@@ -751,19 +743,13 @@ fun TelaControle(
                 )
             }
         }
-
-
     }
 }
-
-
 @Preview(showBackground = true)
 @Composable
 fun ControlePreview() {
     val navController = rememberNavController()
     val viewModel : MeuViewModel = viewModel()
-
-
     LojaSolidariaTheme {
         TelaControle(navController=navController, viewModel = viewModel)
     }
