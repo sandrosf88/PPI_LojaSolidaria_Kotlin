@@ -87,20 +87,22 @@ fun TelaControle(
     Column(
         Modifier
             .fillMaxSize()
-            .padding(top = 2.dp, start = 2.dp, end = 2.dp)
-            .background(color = Color(0xFFC4BFBE)),
+            .background(color = Color(0xFFE1D0B6))
+            .padding(top = 2.dp, start = 2.dp, end = 2.dp),
+
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(35.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(start = 8.dp,top=16.dp),
+                .padding(start = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Loja Solidária Irmã Dulce")
         }
-        Spacer(modifier = Modifier.height(34.dp))
+        Spacer(modifier = Modifier.height(50.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "Controle de Estoque",
@@ -129,7 +131,7 @@ fun TelaControle(
                 fontWeight = FontWeight.Bold
             )
         }
-        Spacer(modifier = Modifier.height(35.dp))
+        Spacer(modifier = Modifier.height(50.dp))
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -157,7 +159,7 @@ fun TelaControle(
                             (Text(
                                 text = "Cadastrar",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 30.sp
+                                fontSize = 20.sp
                             )
                                     )
                         }
@@ -251,7 +253,10 @@ fun TelaControle(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             OutlinedButton(
-                                onClick = {visibilidadeAlertaC = false },
+                                onClick = {visibilidadeAlertaC = false
+                                    viewModel.mensagemErro= ""
+                                    viewModel.quantidadeLida= ""
+                                },
                                 modifier = Modifier.weight(1f),
                                 border = BorderStroke(1.dp, Color(0xFF4A5984)),
                                 colors = ButtonDefaults.outlinedButtonColors(
@@ -724,7 +729,7 @@ fun TelaControle(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
