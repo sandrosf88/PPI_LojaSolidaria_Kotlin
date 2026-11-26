@@ -47,9 +47,6 @@ class MainActivity : ComponentActivity() {
                                 viewModel = viewModel
                             )
                         }
-                        /* Controle(
-                             modifier = Modifier.padding(innerPadding)
-                         )*/
                     }
                 }
             }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,15 +45,27 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.example.lojasolidaria.models.Transacao
 import com.example.lojasolidaria.ui.theme.LojaSolidariaTheme
 import com.example.lojasolidaria.viewModel.MeuViewModel
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.window.DialogProperties
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 
 private val formatoData = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaControle(
     modifier: Modifier = Modifier,
@@ -62,6 +76,13 @@ fun TelaControle(
     var visibilidadeAlertaC by remember {mutableStateOf(false)}
     var visibilidadeAlertaR by remember {mutableStateOf(false)}
     var visibilidadeLista by remember { mutableStateOf(false) }
+    var modoEdicao by remember { mutableStateOf(false) }
+    var mostrarCalendario by remember { mutableStateOf(false) }
+    var confirmarVoltar by remember { mutableStateOf(false) }
+    var confirmarSalvar by remember { mutableStateOf(false) }
+    var erroEdicao by remember { mutableStateOf("") }
+    var dataSelecionada by remember { mutableStateOf(LocalDate.now()) }
+    val edicoes = remember { mutableStateMapOf<Int, String>() }
     Column(
         Modifier
             .fillMaxSize()
@@ -70,12 +91,15 @@ fun TelaControle(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(start = 8.dp,top=16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Loja Solidária Irmã Dulce")
         }
-        Spacer(modifier = Modifier.height(50.dp))
+        Spacer(modifier = Modifier.height(34.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "Controle de Estoque",
@@ -91,8 +115,7 @@ fun TelaControle(
                 fontWeight = FontWeight.Bold
             )
         }
-
-
+        Spacer(modifier = Modifier.height(16.dp))
         Box(
             modifier = Modifier
                 .size(width = 150.dp, height = 50.dp)
@@ -105,7 +128,7 @@ fun TelaControle(
                 fontWeight = FontWeight.Bold
             )
         }
-        Spacer(modifier = Modifier.height(50.dp))
+        Spacer(modifier = Modifier.height(35.dp))
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -387,9 +410,28 @@ fun TelaControle(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val houveAlteracao = viewModel.listaRegistros.any { registro ->
+                edicoes[registro.id]?.let { it != kotlin.math.abs(registro.quantidade).toString() } == true
+            }
+            val edicoesValidas = edicoes.values.all { (it.toIntOrNull() ?: 0) > 0 }
+            val podeSalvar = houveAlteracao && edicoesValidas
+            val sairDaEdicao: () -> Unit = {
+                edicoes.clear()
+                erroEdicao = ""
+                modoEdicao = false
+            }
+            val tentarVoltar: () -> Unit = {
+                if (houveAlteracao) {
+                    confirmarVoltar = true
+                } else {
+                    sairDaEdicao()
+                }
+            }
             Button(
                 onClick = {
-                    viewModel.carregarRegistros()
+                    dataSelecionada = LocalDate.now()
+                    sairDaEdicao()
+                    viewModel.carregarRegistros(dataSelecionada.toString())
                     visibilidadeLista = true
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -405,74 +447,287 @@ fun TelaControle(
             }
             if (visibilidadeLista) {
                 AlertDialog(
-                    onDismissRequest = { visibilidadeLista = false },
+                    onDismissRequest = {
+                        if (modoEdicao) {
+                            tentarVoltar()
+                        } else {
+                            visibilidadeLista = false
+                        }
+                    },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
                     title = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Registros",
+                                text = "Registros: ",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 30.sp
                             )
                         }
                     },
                     text = {
-                        if (viewModel.listaRegistros.isEmpty()) {
-                            Text("Nenhum registro encontrado.")
-                        } else {
-                            LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
-                                item {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 6.dp)
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Data: ${dataSelecionada.format(formatoData)}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.width(125.dp)
+                                )
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    IconButton(
+                                        onClick = { mostrarCalendario = true },
+                                        enabled = !modoEdicao
                                     ) {
-                                        Text("ID", modifier = Modifier.width(35.dp), fontWeight = FontWeight.Bold)
-                                        Text("Data", modifier = Modifier.width(95.dp), fontWeight = FontWeight.Bold)
-                                        Text("Categoria", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                                        Text("Qtd.", fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                items(viewModel.listaRegistros) { registro ->
-                                    val entrada = registro.tipo == "entrada"
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 6.dp)
-                                    ) {
-                                        Text("${registro.id}", modifier = Modifier.width(35.dp))
                                         Text(
-                                            text = LocalDate.parse(registro.dataEvento).format(formatoData),
-                                            modifier = Modifier.width(95.dp)
-                                        )
-                                        Text(
-                                            text = if (entrada) registro.categoria else "Saída",
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Text(
-                                            text = if (entrada) "+${registro.quantidade}" else "${registro.quantidade}",
-                                            color = if (entrada) Color(0xFF2E7D32) else Color.Red,
-                                            fontWeight = FontWeight.Bold
+                                            text = "📅",
+                                            fontSize = 22.sp,
+                                            modifier = Modifier.alpha(if (modoEdicao) 0.5f else 1f)
                                         )
                                     }
                                 }
+                                Box(
+                                    modifier = Modifier.width(96.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (!modoEdicao) {
+                                        val podeEditar = viewModel.listaRegistros.isNotEmpty()
+                                        IconButton(
+                                            onClick = { modoEdicao = true },
+                                            enabled = podeEditar
+                                        ) {
+                                            Text(
+                                                text = "✏️",
+                                                fontSize = 22.sp,
+                                                modifier = Modifier.alpha(if (podeEditar) 0.8f else 0.3f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (viewModel.listaRegistros.isEmpty()) {
+                                Text("Nenhum registro nesta data.")
+                            } else {
+                                LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                                    item {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("ID", modifier = Modifier.width(35.dp), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                            Text("Data", modifier = Modifier.width(90.dp), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                            Text("Categoria", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                            Text("Qtd.", modifier = Modifier.width(96.dp), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        }
+                                    }
+                                    items(viewModel.listaRegistros, key = { it.id }) { registro ->
+                                        val entrada = registro.tipo == "entrada"
+                                        val corQuantidade = if (entrada) Color(0xFF2E7D32) else Color.Red
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("${registro.id}", modifier = Modifier.width(35.dp), fontSize = 14.sp)
+                                            Text(
+                                                text = LocalDate.parse(registro.dataEvento).format(formatoData),
+                                                modifier = Modifier.width(90.dp),
+                                                fontSize = 14.sp
+                                            )
+                                            Text(
+                                                text = if (entrada) registro.categoria else "Saída",
+                                                modifier = Modifier.weight(1f),
+                                                fontSize = 14.sp
+                                            )
+                                            if (modoEdicao) {
+                                                OutlinedTextField(
+                                                    value = edicoes[registro.id]
+                                                        ?: kotlin.math.abs(registro.quantidade).toString(),
+                                                    onValueChange = { novo ->
+                                                        if (novo.length <= 5 && novo.all { it.isDigit() }) {
+                                                            edicoes[registro.id] = novo
+                                                            erroEdicao = ""
+                                                        }
+                                                    },
+                                                    prefix = {
+                                                        Text(
+                                                            text = if (entrada) "+" else "-",
+                                                            color = corQuantidade,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    },
+                                                    singleLine = true,
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    textStyle = TextStyle(fontSize = 14.sp),
+                                                    modifier = Modifier.width(96.dp)
+                                                )
+                                            } else {
+                                                Text(
+                                                    text = if (entrada) "+${registro.quantidade}" else "${registro.quantidade}",
+                                                    modifier = Modifier.width(96.dp),
+                                                    color = corQuantidade,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 14.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (erroEdicao.isNotEmpty()) {
+                                Text(
+                                    text = erroEdicao,
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     },
                     confirmButton = {
-                        Button(
-                            onClick = { visibilidadeLista = false },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4A5984),
-                                contentColor = Color.White
-                            )
-                        ) {
-                            Text("Fechar", fontWeight = FontWeight.Bold)
+                        if (modoEdicao) {
+                            Row {
+                                OutlinedButton(onClick = { tentarVoltar() }) {
+                                    Text("Voltar", fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Button(
+                                    onClick = { confirmarSalvar = true },
+                                    enabled = podeSalvar,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF4A5984),
+                                        contentColor = Color.White,
+                                        disabledContainerColor = Color(0xFFBDBDBD),
+                                        disabledContentColor = Color(0xFF757575)
+                                    )
+                                ) {
+                                    Text("Salvar", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        } else {
+                            Button(
+                                onClick = { visibilidadeLista = false },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF4A5984),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Text("Fechar", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 )
+                if (mostrarCalendario) {
+                    val estadoData = rememberDatePickerState(
+                        initialSelectedDateMillis = dataSelecionada
+                            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+                    )
+                    DatePickerDialog(
+                        onDismissRequest = { mostrarCalendario = false },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    estadoData.selectedDateMillis?.let { milissegundos ->
+                                        dataSelecionada = Instant.ofEpochMilli(milissegundos)
+                                            .atZone(ZoneOffset.UTC).toLocalDate()
+                                        viewModel.carregarRegistros(dataSelecionada.toString())
+                                    }
+                                    mostrarCalendario = false
+                                }
+                            ) {
+                                Text("OK")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { mostrarCalendario = false }) {
+                                Text("Cancelar")
+                            }
+                        }
+                    ) {
+                        DatePicker(state = estadoData)
+                    }
+                }
+                if (confirmarVoltar) {
+                    AlertDialog(
+                        onDismissRequest = { confirmarVoltar = false },
+                        title = { Text("Descartar alterações?", fontWeight = FontWeight.Bold) },
+                        text = { Text("Se voltar agora, as alterações não salvas serão perdidas.") },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    confirmarVoltar = false
+                                    sairDaEdicao()
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF4A5984),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Text("Descartar")
+                            }
+                        },
+                        dismissButton = {
+                            OutlinedButton(onClick = { confirmarVoltar = false }) {
+                                Text("Continuar editando")
+                            }
+                        }
+                    )
+                }
+                if (confirmarSalvar) {
+                    AlertDialog(
+                        onDismissRequest = { confirmarSalvar = false },
+                        title = { Text("Salvar alterações?", fontWeight = FontWeight.Bold) },
+                        text = { Text("Deseja salvar as alterações ou descartá-las e voltar?") },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    confirmarSalvar = false
+                                    if (viewModel.salvarEdicoes(edicoes.toMap())) {
+                                        sairDaEdicao()
+                                        Toast.makeText(
+                                            contexto,
+                                            "Alterações salvas",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        erroEdicao = "Saldo insuficiente para essa alteração."
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF4A5984),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Text("Salvar")
+                            }
+                        },
+                        dismissButton = {
+                            OutlinedButton(
+                                onClick = {
+                                    confirmarSalvar = false
+                                    sairDaEdicao()
+                                }
+                            ) {
+                                Text("Descartar")
+                            }
+                        }
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(10.dp))

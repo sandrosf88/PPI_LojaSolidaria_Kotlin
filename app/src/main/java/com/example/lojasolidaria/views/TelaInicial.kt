@@ -32,13 +32,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.lojasolidaria.R
 import com.example.lojasolidaria.ui.theme.LojaSolidariaTheme
 import com.example.lojasolidaria.viewModel.MeuViewModel
+
+
 
 
 
@@ -66,20 +67,21 @@ fun TelaInicial(modifier: Modifier = Modifier,
                     .padding(top=24.dp)
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(30.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "Login:",
                 fontWeight = FontWeight.Bold,
                 fontSize = 25.sp
             )
+            Spacer(modifier = Modifier.width(10.dp))
             TextField(
                 value = viewModel.loginLido,
                 onValueChange = { viewModel.loginLido = it },
                 modifier = Modifier.width(150.dp)
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -88,6 +90,7 @@ fun TelaInicial(modifier: Modifier = Modifier,
                 fontWeight = FontWeight.Bold,
                 fontSize = 25.sp
             )
+            Spacer(modifier = Modifier.width(10.dp))
             TextField(
                 value = viewModel.senhaLida,
                 onValueChange = { viewModel.senhaLida = it },
@@ -95,7 +98,7 @@ fun TelaInicial(modifier: Modifier = Modifier,
                 modifier = Modifier.width(150.dp)
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(30.dp))
         Button(
             onClick = {
                 if (viewModel.fazerLogin()) {
@@ -122,21 +125,9 @@ fun TelaInicial(modifier: Modifier = Modifier,
         }
         Text(
             text = viewModel.mensagem,
-            color = Color.Blue,
+            color = Color.Red,
             fontWeight = FontWeight.Bold
         )
-
-
-
-
-        /*Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(R.drawable.irma),
-                contentDescription = "Irmã",
-                modifier = Modifier.size(300.dp)
-                //.border(width = 3.dp, Color.Black)
-            )
-        }*/
     }
 }
 

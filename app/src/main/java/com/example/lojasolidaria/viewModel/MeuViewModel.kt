@@ -117,10 +117,34 @@ class MeuViewModel(application: Application) :AndroidViewModel(application) {
             return false
         }
     }
-    fun carregarRegistros() {
+    fun carregarRegistros(data: String) {
         viewModelScope.launch {
-            listaRegistros = daoTransacao.listarTransacoes()
+            listaRegistros = daoTransacao.listarPorData(data)
         }
+    }
+
+    // edicoes: id do registro -> novo valor digitado (sempre positivo).
+    // Retorna false se a alteração deixaria o saldo do estoque negativo.
+    fun salvarEdicoes(edicoes: Map<Int, String>): Boolean {
+        val alterados = listaRegistros.mapNotNull { registro ->
+            val novoValor = edicoes[registro.id]?.toIntOrNull() ?: return@mapNotNull null
+            val novaQuantidade = if (registro.tipo == "entrada") novoValor else -novoValor
+            if (novaQuantidade == registro.quantidade) null
+            else registro.copy(quantidade = novaQuantidade)
+        }
+        val diferenca = alterados.sumOf { novo ->
+            novo.quantidade - listaRegistros.first { it.id == novo.id }.quantidade
+        }
+        if (saldoEstoque + diferenca < 0) return false
+
+        listaRegistros = listaRegistros.map { registro ->
+            alterados.firstOrNull { it.id == registro.id } ?: registro
+        }
+        viewModelScope.launch {
+            alterados.forEach { daoTransacao.atualizar(it) }
+            saldoEstoque = daoTransacao.saldoEstoque() ?: 0
+        }
+        return true
     }
     init {
         viewModelScope.launch {
